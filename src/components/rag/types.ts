@@ -10,7 +10,7 @@ export interface Message {
   query?: string;
   foundLinks?: { url: string; title: string; iteration?: number; source?: string }[];
   webLinks?: { url: string; title: string }[];
-  phases?: import("@/hooks/useRagQuery").PhaseData[];
+  phases?: { phase: string; status?: string; [key: string]: unknown }[];
 }
 
 export interface RagInterfaceProps {

@@ -166,7 +166,7 @@ export const parseLatexToHtml = (latex: string): string => {
     .replace(/\\textbf\{([^}]+)\}/g, "<strong>$1</strong>")
     .replace(/\\textit\{([^}]+)\}/g, "<em>$1</em>")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/\*([^\*]+)\*/g, "<em>$1</em>")
     .replace(
       /\[([^\]]+)\]\(([^)]+)\)/g,
       '<a href="$2" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>',

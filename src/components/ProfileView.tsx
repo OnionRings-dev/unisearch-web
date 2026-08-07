@@ -97,10 +97,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
                 if (!isMounted) return;
                 setProfileError(getErrorMessage(err));
             } finally {
-                if (isMounted) {
-                    setProfileFetching(false);
-                    setProfileLoaded(true);
-                }
+                if (!isMounted) return;
+                setProfileFetching(false);
+                setProfileLoaded(true);
             }
         };
 

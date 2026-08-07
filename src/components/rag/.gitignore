@@ -1,0 +1,5 @@
+CSE/unimi_CSE/scraped_content_*.txt
+CSE/unimi_CSE/crawled_urls_*.txt
+CSE/unimib_CSE/crawled_urls_*.txt
+**/scraped_content_*.txt
+**/crawled_urls_*.txt

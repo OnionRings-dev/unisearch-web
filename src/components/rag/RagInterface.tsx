@@ -212,7 +212,7 @@ export const RagInterface = ({
       const lastMessage = newMessages[newMessages.length - 1];
       if (!lastMessage || lastMessage.type !== "assistant") return prev;
 
-      const updated = { ...lastMessage, isStreaming: true };
+      const updated = { ...lastMessage };
 
       if (hasPhases) {
         const lastPhase = phases[phases.length - 1];
@@ -220,11 +220,19 @@ export const RagInterface = ({
         updated.reasoningText = getReasoningText(lastPhase);
         updated.thinkingText = thinkingPhase?.evaluation_explanation;
         updated.foundLinks = phases.flatMap((p) => p.found_links || []);
-        updated.phases = phases;
+        updated.phases = phases as Message["phases"];
       }
 
       if (answer) {
-        updated.content = answer;
+        const pipelinePrefixes = ["Inizio pipeline", "====", "📝", "🔍", "🔄", "🌐", "📥",
+          "📊", "📄", "⚠️", "💬", "💭", "🎯", "ATTENZIONE", "OK ", "Analisi completezza",
+          "Generazione risposta", "RISPOSTA FINALE"]
+        const clean = answer.split("\n").filter(line => {
+          const t = line.trim()
+          if (!t) return false
+          return !pipelinePrefixes.some(p => t.startsWith(p))
+        }).join("\n")
+        updated.content = clean || answer
       }
 
       newMessages[newMessages.length - 1] = updated;
@@ -235,13 +243,12 @@ export const RagInterface = ({
   useEffect(() => {
     if (isLoading || !messages.length) return;
     setMessages((prev) => {
-      const newMessages = [...prev];
-      const lastMessage = newMessages[newMessages.length - 1];
-      if (lastMessage && lastMessage.type === "assistant") {
-        lastMessage.isStreaming = false;
-        lastMessage.reasoningText = undefined;
-      }
-      return newMessages;
+      return prev.map((msg, i) => {
+        if (i === prev.length - 1 && msg.type === "assistant" && msg.isStreaming) {
+          return { ...msg, isStreaming: false, reasoningText: undefined };
+        }
+        return msg;
+      });
     });
   }, [isLoading]);
 

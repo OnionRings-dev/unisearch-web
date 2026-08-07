@@ -1,5 +1,5 @@
+import { Bot, Sparkles, Search, MessageSquareText, BookOpen, GraduationCap, Play, ArrowRight, ChevronDown, Menu, X, Brain, Library, Globe, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Bot, Sparkles, Search, MessageSquareText, BookOpen, GraduationCap, Play, Clock3, ArrowRight, ChevronDown, Menu, X, Brain, Library, Globe, Star } from 'lucide-react';
 
 interface LandingPageProps {
   onNavigate: (page: 'auth' | 'register') => void;
@@ -8,6 +8,7 @@ interface LandingPageProps {
 export function LandingPage({ onNavigate }: LandingPageProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [playingVideo, setPlayingVideo] = useState<'esami' | 'orari' | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -178,40 +179,52 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Demo placeholders */}
+      {/* Demo Placeholder */}
       <section id="demo" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Demo UniSearch</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">I video dimostrativi saranno disponibili prossimamente.</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Vedi UniSearch in azione</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Guarda come risponde alle domande sugli esami, trova orari e molto altro.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={() => setPlayingVideo(playingVideo === 'esami' ? null : 'esami')}>
               <div className="absolute -inset-1 bg-gradient-to-br from-[#003366]/20 to-[#2563eb]/10 dark:from-[#003366]/30 dark:to-[#2563eb]/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-2xl flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDMzNjYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 bg-[#003366]/10 dark:bg-[#003366]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock3 className="w-7 h-7 text-[#003366] dark:text-blue-400" />
-                  </div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Demo: Ricerca Esami</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Video in arrivo</p>
-                </div>
+                {playingVideo === 'esami' ? (
+                  <video className="w-full h-full object-contain" controls autoPlay src="/videos/demo_spanish.mov" />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDMzNjYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+                    <div className="relative z-10 text-center">
+                      <div className="w-16 h-16 bg-[#003366]/10 dark:bg-[#003366]/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Play className="w-7 h-7 text-[#003366] dark:text-blue-400 ml-0.5" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Demo: Ricerca Esami</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Clicca per vedere il video</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={() => setPlayingVideo(playingVideo === 'orari' ? null : 'orari')}>
               <div className="absolute -inset-1 bg-gradient-to-br from-[#003366]/20 to-[#2563eb]/10 dark:from-[#003366]/30 dark:to-[#2563eb]/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-2xl flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDMzNjYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 bg-[#003366]/10 dark:bg-[#003366]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock3 className="w-7 h-7 text-[#003366] dark:text-blue-400" />
-                  </div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Demo: Orario Lezioni</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Video in arrivo</p>
-                </div>
+                {playingVideo === 'orari' ? (
+                  <video className="w-full h-full object-contain" controls autoPlay src="/videos/Demo_UniSearch.mov" />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDMzNjYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+                    <div className="relative z-10 text-center">
+                      <div className="w-16 h-16 bg-[#003366]/10 dark:bg-[#003366]/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Play className="w-7 h-7 text-[#003366] dark:text-blue-400 ml-0.5" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Demo: Orario Lezioni</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Clicca per vedere il video</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -126,7 +126,7 @@ export const useRagQuery = () => {
         const chunk = decoder.decode(value, { stream: true })
         buffer += chunk
 
-        const lines = buffer.split('\n')
+        let lines = buffer.split('\n')
 
         // The last element is always the residue (incomplete line or empty if ends in newline)
         const residue = lines.pop() || ''
@@ -147,21 +147,24 @@ export const useRagQuery = () => {
               if (data.type === 'search_result') {
                 setState(prevState => {
                   const newPhases = [...prevState.phases]
-                  // Find the last database_search phase
-                  const phaseIndex = newPhases.map(p => p.phase).lastIndexOf('database_search')
+                  const source = data.data?.source || "milvus"
+                  const targetPhase = source === "web" ? "web_search" : "database_search"
+                  const phaseIndex = newPhases.map(p => p.phase).lastIndexOf(targetPhase)
+                  const linkData = { ...data.data, iteration: data.iteration }
+
                   if (phaseIndex !== -1) {
                     const currentPhase = newPhases[phaseIndex]
-                    const linkData = { ...data.data, iteration: data.iteration }
                     const newLinks = currentPhase.found_links ? [...currentPhase.found_links, linkData] : [linkData]
                     newPhases[phaseIndex] = { ...currentPhase, found_links: newLinks }
-
-                    return { ...prevState, phases: newPhases }
+                  } else {
+                    newPhases.push({ phase: targetPhase, status: 'started', found_links: [linkData], startTime: Date.now() })
                   }
-                  return prevState
+
+                  return { ...prevState, phases: newPhases }
                 })
-                continue; // Skip text processing for this line
+                continue;
               }
-            } catch {
+            } catch (e) {
                // If JSON fails, treat as Text Data (QDA/Orchestrator format)
 
                const isFooter = line.startsWith("Link:") || line.startsWith("Fonti:") || line.startsWith("Documenti utilizzati")
@@ -178,7 +181,7 @@ export const useRagQuery = () => {
                const now = Date.now()
                setState(prevState => {
                  if (currentRequestId !== requestIdRef.current) return prevState
-                 const newPhases = [...prevState.phases]
+                 let newPhases = [...prevState.phases]
 
                 // Phase Mapping Logic
                 if (line.includes("GENERAZIONE QUERY + HyDE")) {
@@ -225,7 +228,7 @@ export const useRagQuery = () => {
                 return {
                   ...prevState,
                   phases: newPhases,
-                  answer: accumulatedAnswer + buffer
+                  answer: isStreamingAnswer ? accumulatedAnswer + buffer : prevState.answer
                 }
               })
             }
