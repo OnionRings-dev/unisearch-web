@@ -1,25 +1,22 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+import { ENDPOINTS } from "@/config/endpoints";
+import type { GoogleLoginResponse, RefreshResponse } from "@/types/api";
+
+export type { RefreshResponse } from "@/types/api";
 
 export async function getGoogleAuthUrl(): Promise<string> {
-  const response = await fetch(`${API_BASE}/auth/google/login`);
+  const response = await fetch(ENDPOINTS.AUTH.GOOGLE_LOGIN);
   if (!response.ok) {
     throw new Error("Errore durante la richiesta di login");
   }
-  const data = await response.json();
+  const data = (await response.json()) as GoogleLoginResponse;
   if (!data?.url) {
     throw new Error("Risposta login non valida");
   }
-  return data.url as string;
+  return data.url;
 }
 
-export type RefreshResponse = {
-  access_token: string;
-  user_id: number;
-  email: string;
-};
-
 export async function refreshAccessToken(): Promise<RefreshResponse> {
-  const response = await fetch(`${API_BASE}/auth/refresh`, {
+  const response = await fetch(ENDPOINTS.AUTH.REFRESH, {
     method: "POST",
     credentials: "include",
   });
@@ -30,7 +27,7 @@ export async function refreshAccessToken(): Promise<RefreshResponse> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`${API_BASE}/auth/logout`, {
+  await fetch(ENDPOINTS.AUTH.LOGOUT, {
     method: "POST",
     credentials: "include",
   });

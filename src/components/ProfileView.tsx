@@ -3,8 +3,8 @@ import { User, Mail, Trash2, AlertTriangle, Loader2, GraduationCap, BookOpen, Ma
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-const API_BASE = '/api';
+import type { StudentProfile } from '@/types/api';
+import { fetchProfile, updateProfile, deleteAccount } from '@/services/profileService';
 
 const getErrorMessage = (err: unknown): string => {
     if (err instanceof Error) return err.message;
@@ -19,23 +19,29 @@ interface ProfileViewProps {
     onProfileUpdated?: () => void;
 }
 
-interface StudentProfile {
-    degree_program: string | null;
-    degree_class: string | null;
-    enrollment_year: number | null;
-    degree_type: string | null;
-    campus: string | null;
-}
+const DEGREE_TYPES = [
+    { value: '', label: 'Seleziona...' },
+    { value: 'Triennale', label: 'Laurea Triennale' },
+    { value: 'Magistrale', label: 'Laurea Magistrale' },
+    { value: 'Ciclo Unico', label: 'Laurea a Ciclo Unico' },
+] as const;
+
+const YEARS = [
+    { value: '', label: 'Seleziona...' },
+    { value: 1, label: '1° Anno' },
+    { value: 2, label: '2° Anno' },
+    { value: 3, label: '3° Anno' },
+    { value: 4, label: '4° Anno' },
+    { value: 5, label: '5° Anno' },
+    { value: 6, label: '6° Anno (Fuori Corso)' },
+] as const;
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initialEmail, onLogout, onProfileUpdated }: ProfileViewProps) => {
-    // Ensure userId is valid
     const validUserId = !isNaN(userId);
-    const [email] = useState(initialEmail);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // Student Profile State
     const [profileLoading, setProfileLoading] = useState(false);
     const [profileFetching, setProfileFetching] = useState(false);
     const [profileError, setProfileError] = useState('');
@@ -51,7 +57,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
     const degreeTypeRef = useRef<HTMLDivElement>(null);
     const yearRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdowns on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (degreeTypeRef.current && !degreeTypeRef.current.contains(event.target as Node)) {
@@ -65,28 +70,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Fetch student profile from API
     useEffect(() => {
         let isMounted = true;
 
-        const fetchProfile = async () => {
+        const loadProfile = async () => {
             setProfileError('');
             setProfileFetching(true);
             try {
-                const response = await fetch(`${API_BASE}/auth/user/me/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (response.status === 401) {
-                    onLogout();
-                    return;
-                }
-                if (!response.ok) {
-                    throw new Error(`Errore ${response.status}: ${response.statusText}`);
-                }
-                const data: StudentProfile = await response.json();
+                const data: StudentProfile = await fetchProfile(token);
                 if (!isMounted) return;
                 setDegreeProgram(data.degree_program || '');
                 setDegreeClass(data.degree_class || '');
@@ -95,15 +86,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
                 setCampus(data.campus || '');
             } catch (err: unknown) {
                 if (!isMounted) return;
-                setProfileError(getErrorMessage(err));
+                const message = getErrorMessage(err);
+                if (message === 'UNAUTHORIZED') {
+                    onLogout();
+                    return;
+                }
+                setProfileError(message);
             } finally {
-                if (!isMounted) return;
-                setProfileFetching(false);
-                setProfileLoaded(true);
+                if (isMounted) {
+                    setProfileFetching(false);
+                    setProfileLoaded(true);
+                }
             }
         };
 
-        fetchProfile();
+        loadProfile();
         return () => {
             isMounted = false;
         };
@@ -123,25 +120,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
                 degree_type: degreeType || null,
                 campus: campus || null,
             };
-            const response = await fetch(`${API_BASE}/auth/user/me/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            if (response.status === 401) {
-                onLogout();
-                return;
-            }
-            if (!response.ok) {
-                throw new Error(`Errore ${response.status}: ${response.statusText}`);
-            }
+            await updateProfile(token, payload);
             setProfileSuccess('Informazioni accademiche salvate!');
             if (onProfileUpdated) onProfileUpdated();
         } catch (err: unknown) {
-            setProfileError(getErrorMessage(err));
+            const message = getErrorMessage(err);
+            if (message === 'UNAUTHORIZED') {
+                onLogout();
+                return;
+            }
+            setProfileError(message);
         } finally {
             setProfileLoading(false);
         }
@@ -153,47 +141,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
             return;
         }
         setIsLoading(true);
-        console.log(`DEBUG: Attempting to DELETE account for userId: ${userId} (type: ${typeof userId})`);
-        console.log(`DEBUG: URL: http://localhost:8000/auth/user/${userId}`);
         try {
-            const response = await fetch(`${API_BASE}/auth/user/me`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) {
-                console.error(`DEBUG: DELETE failed. Status: ${response.status}, StatusText: ${response.statusText}`);
-                const data = await response.json().catch(() => ({}));
-                setError(data.detail || `Errore ${response.status}: ${data.error || response.statusText}`);
-            } else {
-                console.log("DEBUG: DELETE successful");
-                onLogout();
-            }
+            await deleteAccount(token);
+            onLogout();
         } catch (err: unknown) {
-            console.error("DEBUG: DELETE catch error:", err);
             setError(getErrorMessage(err));
         } finally {
             setIsLoading(false);
             setShowDeleteConfirm(false);
         }
     };
-
-    const DEGREE_TYPES = [
-        { value: '', label: 'Seleziona...' },
-        { value: 'Triennale', label: 'Laurea Triennale' },
-        { value: 'Magistrale', label: 'Laurea Magistrale' },
-        { value: 'Ciclo Unico', label: 'Laurea a Ciclo Unico' },
-    ];
-
-    const YEARS = [
-        { value: '', label: 'Seleziona...' },
-        { value: 1, label: '1° Anno' },
-        { value: 2, label: '2° Anno' },
-        { value: 3, label: '3° Anno' },
-        { value: 4, label: '4° Anno' },
-        { value: 5, label: '5° Anno' },
-        { value: 6, label: '6° Anno (Fuori Corso)' },
-    ];
 
     return (
         <div className="flex-1 h-full overflow-y-auto bg-gray-50 dark:bg-gray-900/50 p-4 md:p-8">
@@ -228,7 +185,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ userId, token, initial
                                 <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
                                     type="email"
-                                    value={email}
+                                    value={initialEmail}
                                     className="pl-9 bg-gray-100 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                                     placeholder="la-tua-email@studenti.unimi.it"
                                     readOnly

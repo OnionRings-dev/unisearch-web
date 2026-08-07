@@ -1,8 +1,3 @@
-export const COLLECTIONS = [
-  // { name: "unimi", alias: "unimi" },
-  // { name: "unimib", alias: "unimib" },
-  { name: "scraped_content", alias: "unimi" },
-  { name: "unimib", alias: "unimib" },
-  { name: "polimi", alias: "polimi" },
-  // { name: "dipo_10_BAAI", alias: "Dipo Unimi" },
-];
+// Le collections sono ora fetchate dinamicamente dall'API via useCollections() hook
+// e passate come prop a ChatInput e CollectionDropdown
+// end_point GET /collections

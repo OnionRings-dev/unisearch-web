@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { Chat } from "@/types";
+import type { StudentProfile } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { useRagQuery } from "@/hooks/useRagQuery";
+import { useCollections } from "@/hooks/useCollections";
+import { fetchProfile } from "@/services/profileService";
 import { Bot, RotateCcw, LogOut, PanelLeft, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -28,8 +31,7 @@ export const RagInterface = ({
 }: RagInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
-  const [selectedCollection, setSelectedCollection] =
-    useState("scraped_content");
+  const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [showCollectionDropdown, setShowCollectionDropdown] = useState(false);
   const [collectionFilter, setCollectionFilter] = useState("");
   const [executionMode] = useState<"fast" | "deep">("fast");
@@ -42,10 +44,18 @@ export const RagInterface = ({
   const prevLoadingRef = useRef(false);
   const [isLimitBannerDismissed, setIsLimitBannerDismissed] = useState(false);
 
+  const { collections, isLoading: collectionsLoading, error: collectionsError, defaultCollection } = useCollections(token);
+
+  useEffect(() => {
+    if (defaultCollection && !selectedCollection) {
+      setSelectedCollection(defaultCollection);
+    }
+  }, [defaultCollection, selectedCollection]);
+
   // Chat History Sidebar State
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState<"chat" | "profile">("chat");
   const [, setStudentContext] = useState<string | undefined>(undefined);
 
@@ -61,29 +71,17 @@ export const RagInterface = ({
 
   const chatStorageUserKey = userEmail;
 
-  // Load chats from local storage
   const fetchUserChats = useCallback(() => {
     setChats(listChats(chatStorageUserKey));
   }, [chatStorageUserKey]);
 
-  // Load chat history on login
   useEffect(() => {
     fetchUserChats();
   }, [fetchUserChats]);
 
-  // Load student profile for context
   const fetchStudentProfile = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/user/me/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        setStudentContext(undefined);
-        return;
-      }
-      const profile = await response.json();
+      const profile: StudentProfile = await fetchProfile(token);
       const parts: string[] = [];
       if (profile.degree_program)
         parts.push(`Corso di Laurea: ${profile.degree_program}`);
@@ -123,12 +121,11 @@ export const RagInterface = ({
         handleNewChat();
       }
     },
-    [userId, chatStorageUserKey, currentChatId, handleNewChat],
+    [chatStorageUserKey, currentChatId, handleNewChat],
   );
 
   const skipNextSave = useRef(false);
 
-  // Load a specific chat
   const handleSelectChat = (chatId: number) => {
     skipNextSave.current = true;
 
@@ -145,20 +142,17 @@ export const RagInterface = ({
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
-  // Reset limit banner dismissal when a new query starts
   useEffect(() => {
     if (isLoading) {
       setIsLimitBannerDismissed(false);
     }
   }, [isLoading]);
 
-  // ChatGPT-style scrolling:
   useEffect(() => {
     const wasLoading = prevLoadingRef.current;
     prevLoadingRef.current = isLoading;
 
     if (isLoading && !wasLoading) {
-      // 1. New Question Started: specific scroll to the user question
       const userMessages = messages.filter((m) => m.type === "user");
       const lastUserMessage = userMessages[userMessages.length - 1];
 
@@ -171,7 +165,6 @@ export const RagInterface = ({
         }, 150);
       }
     } else if (!isLoading && !wasLoading) {
-      // 2. Initial Load / History Fetch: generic scroll to bottom
       if (messages.length > 0) {
         messagesEndRef.current?.scrollIntoView({
           behavior: "auto",
@@ -181,7 +174,6 @@ export const RagInterface = ({
     }
   }, [messages.length, isLoading]);
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: PointerEvent) => {
       if (
@@ -255,6 +247,7 @@ export const RagInterface = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || isSubmittingRef.current) return;
+    if (collectionsLoading || !selectedCollection) return;
 
     const trimmedInput = currentInput.trim();
     if (!trimmedInput) return;
@@ -296,7 +289,6 @@ export const RagInterface = ({
 
     setCurrentInput("");
 
-    // Enrich query with full context from previous messages
     let contextualQuery = trimmedInput;
     const prevUserMessages = messages.filter((m) => m.type === "user");
     if (prevUserMessages.length > 0) {
@@ -306,22 +298,20 @@ export const RagInterface = ({
       contextualQuery = `DOMANDA CORRENTE: ${trimmedInput}\nSTORICO DOMANDE:\n${allPrevQueries}`;
     }
 
-    executeQuery(
-      contextualQuery,
-      selectedCollection,
+    executeQuery({
+      queryText: contextualQuery,
+      collection: selectedCollection,
       token,
-      "/api",
       executionMode,
-      activeChatId ?? undefined,
-      messages,
-    );
+      chatId: activeChatId ?? undefined,
+      previousMessages: messages,
+    });
 
     setTimeout(() => {
       isSubmittingRef.current = false;
     }, 1000);
   };
 
-  // Auto-save chat effect
   useEffect(() => {
     if (!currentChatId || messages.length === 0) return;
 
@@ -357,7 +347,6 @@ export const RagInterface = ({
           onSwitchView={setCurrentView}
         />
 
-        {/* Spacer per la sidebar desktop per evitare problemi di layout shift con posizionamento fisso */}
         <div
           className={cn(
             "hidden md:block transition-all duration-300 ease-in-out shrink-0",
@@ -374,7 +363,6 @@ export const RagInterface = ({
           {/* Header */}
           <div className="border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-background/95 backdrop-blur-sm sticky top-0 z-10 shrink-0">
             <div className="relative flex items-center h-[65px] px-4">
-              {/* Sidebar Toggle - Visible only when sidebar is closed */}
               {!isSidebarOpen && (
                 <button
                   onClick={toggleSidebar}
@@ -385,7 +373,6 @@ export const RagInterface = ({
                 </button>
               )}
 
-              {/* Centered Content Container */}
               <div className="absolute inset-y-0 left-12 right-0 md:left-0 flex justify-center pointer-events-none">
                 <div className="w-full max-w-4xl px-4 flex items-center justify-between pointer-events-auto">
                   <div className="flex items-center gap-3">
@@ -466,6 +453,16 @@ export const RagInterface = ({
                             Fai una domanda sui corsi, esami o qualsiasi aspetto
                             universitario.
                           </p>
+                          {collectionsLoading && (
+                            <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+                              Caricamento università disponibili...
+                            </p>
+                          )}
+                          {collectionsError && (
+                            <p className="text-red-500 text-xs mt-2">
+                              {collectionsError}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -487,6 +484,7 @@ export const RagInterface = ({
                             }
                             collectionFilter={collectionFilter}
                             setCollectionFilter={setCollectionFilter}
+                            collections={collections}
                             dropdownRef={dropdownRef}
                             formRef={formRef}
                           />
@@ -511,6 +509,7 @@ export const RagInterface = ({
                             }
                             collectionFilter={collectionFilter}
                             setCollectionFilter={setCollectionFilter}
+                            collections={collections}
                             dropdownRef={dropdownRef}
                             formRef={formRef}
                             className="bg-white/95 dark:bg-gray-900/30 backdrop-blur-md shadow-lg border-gray-200 dark:border-gray-800"
@@ -542,9 +541,7 @@ export const RagInterface = ({
 
                 {messages.length > 0 && (
                   <div className="sticky bottom-0 z-20 w-full pt-32 pb-2 md:pb-4 mt-auto pointer-events-none">
-                    {/* Progressive blur and gradient overlay */}
                     <div className="absolute inset-0 overflow-hidden">
-                      {/* The blur layer - using mask-image to fade the blur itself */}
                       <div
                         className="absolute inset-0 backdrop-blur-xl"
                         style={{
@@ -554,7 +551,6 @@ export const RagInterface = ({
                             "linear-gradient(to top, black 0%, black 30%, transparent 100%)",
                         }}
                       />
-                      {/* The color layer - matches the background */}
                       <div className="absolute inset-0 bg-linear-to-t from-background via-background/80 to-transparent" />
                     </div>
 
@@ -576,6 +572,7 @@ export const RagInterface = ({
                         setShowCollectionDropdown={setShowCollectionDropdown}
                         collectionFilter={collectionFilter}
                         setCollectionFilter={setCollectionFilter}
+                        collections={collections}
                         dropdownRef={dropdownRef}
                         formRef={formRef}
                         className="bg-white/95 dark:bg-card/50 backdrop-blur-md shadow-lg border-gray-200 dark:border-white/10"

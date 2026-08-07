@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Send, Square } from "lucide-react";
-import { COLLECTIONS } from "./constants";
+import type { Collection } from "@/types/api";
 import { CollectionDropdown } from "./CollectionDropdown";
 
 export const ChatInput = ({
@@ -15,6 +15,7 @@ export const ChatInput = ({
   setShowCollectionDropdown,
   collectionFilter,
   setCollectionFilter,
+  collections,
   dropdownRef,
   formRef,
   className = "",
@@ -30,6 +31,7 @@ export const ChatInput = ({
   setShowCollectionDropdown: (open: boolean) => void;
   collectionFilter: string;
   setCollectionFilter: (filter: string) => void;
+  collections: Collection[];
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   formRef: React.RefObject<HTMLFormElement | null>;
   className?: string;
@@ -45,6 +47,10 @@ export const ChatInput = ({
     const newHeight = Math.max(40, Math.min(el.scrollHeight, maxHeightPx));
     el.style.height = `${newHeight}px`;
   }, [value]);
+
+  const selectedAlias =
+    collections.find((c) => c.name === selectedCollection)?.alias ||
+    selectedCollection;
 
   return (
     <>
@@ -87,6 +93,7 @@ export const ChatInput = ({
         {showCollectionDropdown && (
           <CollectionDropdown
             filter={collectionFilter}
+            collections={collections}
             dropdownRef={dropdownRef}
             onSelect={(name) => {
               setSelectedCollection(name);
@@ -103,11 +110,11 @@ export const ChatInput = ({
           <button
             type="button"
             onClick={() => setShowCollectionDropdown(true)}
-            className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            disabled={collections.length === 0}
+            className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Università:{" "}
-            {COLLECTIONS.find((c) => c.name === selectedCollection)?.alias ||
-              selectedCollection}
+            {collections.length === 0 ? "Caricamento..." : selectedAlias}
           </button>
         </div>
         <button

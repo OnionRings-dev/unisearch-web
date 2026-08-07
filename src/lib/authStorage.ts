@@ -1,11 +1,10 @@
-export type AuthState = {
-  token: string;
-  userId: number;
-  email: string;
-};
+import type { AuthState } from "@/types/api";
+
+export type { AuthState } from "@/types/api";
 
 type JwtPayload = {
   exp?: number;
+  id?: number;
   [key: string]: unknown;
 };
 
@@ -30,7 +29,7 @@ export function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 <= Date.now();
 }
 
-export function clearStoredAuth() {
+export function clearStoredAuth(): void {
   inMemoryAuth = null;
 }
 
@@ -48,6 +47,6 @@ export function getStoredAuth(): AuthState | null {
   return inMemoryAuth;
 }
 
-export function storeAuth(token: string, userId: number, email: string) {
+export function storeAuth(token: string, userId: number, email: string): void {
   inMemoryAuth = { token, userId, email };
 }
