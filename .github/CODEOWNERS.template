@@ -1,0 +1,10 @@
+# Modello: sostituire tutti i placeholder con handle o team GitHub reali,
+# quindi rinominare il file in CODEOWNERS.
+* @OnionRings-dev/REPLACE-WEB-OWNER-1 @OnionRings-dev/REPLACE-WEB-OWNER-2
+
+/src/components/rag/ @OnionRings-dev/REPLACE-RAG-OWNER-1 @OnionRings-dev/REPLACE-RAG-OWNER-2
+/src/hooks/useAuth.ts @OnionRings-dev/REPLACE-AUTH-OWNER-1 @OnionRings-dev/REPLACE-AUTH-OWNER-2
+/src/hooks/useAuthLogin.ts @OnionRings-dev/REPLACE-AUTH-OWNER-1 @OnionRings-dev/REPLACE-AUTH-OWNER-2
+/src/lib/authApi.ts @OnionRings-dev/REPLACE-AUTH-OWNER-1 @OnionRings-dev/REPLACE-AUTH-OWNER-2
+/Dockerfile @OnionRings-dev/REPLACE-OPS-OWNER-1 @OnionRings-dev/REPLACE-OPS-OWNER-2
+/nginx.conf @OnionRings-dev/REPLACE-OPS-OWNER-1 @OnionRings-dev/REPLACE-OPS-OWNER-2
