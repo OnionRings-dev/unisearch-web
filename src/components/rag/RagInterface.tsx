@@ -52,7 +52,6 @@ export const RagInterface = ({
     }
   }, [defaultCollection, selectedCollection]);
 
-  // Chat History Sidebar State
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -69,11 +68,14 @@ export const RagInterface = ({
     stop,
   } = useRagQuery();
 
-  const chatStorageUserKey = userEmail;
-
-  const fetchUserChats = useCallback(() => {
-    setChats(listChats(chatStorageUserKey));
-  }, [chatStorageUserKey]);
+  const fetchUserChats = useCallback(async () => {
+    try {
+      const data = await listChats(token);
+      setChats(data);
+    } catch {
+      // Non-blocking: chat history can fail silently
+    }
+  }, [token]);
 
   useEffect(() => {
     fetchUserChats();
@@ -114,25 +116,29 @@ export const RagInterface = ({
   }, [reset]);
 
   const handleDeleteChat = useCallback(
-    (chatId: number) => {
-      deleteChat(chatStorageUserKey, chatId);
-      setChats(listChats(chatStorageUserKey));
+    async (chatId: number) => {
+      try {
+        await deleteChat(token, chatId);
+      } catch {
+        // Non-blocking
+      }
       if (currentChatId === chatId) {
         handleNewChat();
       }
+      await fetchUserChats();
     },
-    [chatStorageUserKey, currentChatId, handleNewChat],
+    [token, currentChatId, handleNewChat, fetchUserChats],
   );
 
   const skipNextSave = useRef(false);
 
-  const handleSelectChat = (chatId: number) => {
+  const handleSelectChat = async (chatId: number) => {
     skipNextSave.current = true;
 
-    const chat = getChat(chatStorageUserKey, chatId);
+    const chat = await getChat(token, chatId);
     if (!chat) {
       skipNextSave.current = false;
-      fetchUserChats();
+      await fetchUserChats();
       return;
     }
 
@@ -244,7 +250,7 @@ export const RagInterface = ({
     });
   }, [isLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || isSubmittingRef.current) return;
     if (collectionsLoading || !selectedCollection) return;
@@ -277,14 +283,19 @@ export const RagInterface = ({
 
     let activeChatId = currentChatId;
     if (!currentChatId) {
-      const createdChat = createChat(
-        chatStorageUserKey,
-        trimmedInput,
-        initialMessages,
-      );
-      setCurrentChatId(createdChat.id);
-      setChats(listChats(chatStorageUserKey));
-      activeChatId = createdChat.id;
+      try {
+        const createdChat = await createChat(
+          token,
+          trimmedInput,
+          initialMessages,
+        );
+        setCurrentChatId(createdChat.id);
+        await fetchUserChats();
+        activeChatId = createdChat.id;
+      } catch {
+        isSubmittingRef.current = false;
+        return;
+      }
     }
 
     setCurrentInput("");
@@ -320,15 +331,16 @@ export const RagInterface = ({
       return;
     }
 
-    const timeoutId = setTimeout(() => {
-      const updated = updateChat(chatStorageUserKey, currentChatId, messages);
-      if (updated) {
-        setChats(listChats(chatStorageUserKey));
+    const timeoutId = setTimeout(async () => {
+      try {
+        await updateChat(token, currentChatId, messages);
+      } catch {
+        // Non-blocking
       }
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [messages, userId, currentChatId, chatStorageUserKey]);
+  }, [messages, token, currentChatId]);
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 

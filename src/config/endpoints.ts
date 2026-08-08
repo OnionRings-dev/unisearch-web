@@ -10,6 +10,12 @@ export const ENDPOINTS = {
     PROFILE: `${API_BASE}/auth/user/me/profile`,
     DELETE: `${API_BASE}/auth/user/me`,
   },
+  CHAT: {
+    SAVE: `${API_BASE}/auth/chat/save`,
+    HISTORY: `${API_BASE}/auth/chat/history`,
+    DETAIL: (chatId: number) => `${API_BASE}/auth/chat/${chatId}`,
+    DELETE: (chatId: number) => `${API_BASE}/auth/chat/${chatId}`,
+  },
   QUERY: `${API_BASE}/query`,
   // end_point GET /collections
   COLLECTIONS: `${API_BASE}/collections`,

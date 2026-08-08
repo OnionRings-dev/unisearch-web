@@ -31,3 +31,29 @@ export interface ApiError {
   detail?: string;
   error?: string;
 }
+
+export interface ChatListItem {
+  id: number;
+  title: string;
+  created_at: string;
+}
+
+export interface ChatDetail {
+  id: number;
+  user_id: number;
+  title: string;
+  messages: unknown[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaveChatRequest {
+  messages: unknown[];
+  title: string;
+  chat_id?: number;
+}
+
+export interface SaveChatResponse {
+  chat_id: number;
+}
+
